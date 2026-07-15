@@ -17,6 +17,17 @@ services:
       timeout: 3s
       retries: 10
 
+  migrate:
+    image: postgres:17-alpine
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-employee_requests}:${POSTGRES_PASSWORD:-employee_requests}@db:5432/${POSTGRES_DB:-employee_requests}?sslmode=disable
+    volumes:
+      - ./migrations:/migrations:ro
+    entrypoint: ["/bin/sh", "/migrations/migrate.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     build:
       context: .
@@ -28,8 +39,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:

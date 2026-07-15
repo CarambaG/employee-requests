@@ -1,4 +1,4 @@
-.PHONY: run build test fmt vet check up down logs
+.PHONY: run build migrate-up test fmt vet check up down logs
 
 run:
 	go run ./cmd/api
@@ -6,6 +6,9 @@ run:
 build:
 	mkdir -p bin
 	go build -o bin/api ./cmd/api
+
+migrate-up:
+	docker compose run --rm migrate
 
 test:
 	go test ./...
