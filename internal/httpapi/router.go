@@ -2,9 +2,11 @@ package httpapi
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/CarambaG/employee-requests/internal/domain"
+	"github.com/CarambaG/employee-requests/internal/employee"
 )
 
 const (
@@ -18,41 +20,28 @@ type Pinger interface {
 	Ping(context.Context) error
 }
 
-type healthResponse struct {
-	Status   string `json:"status"`
-	Service  string `json:"service"`
-	Database string `json:"database"`
+type EmployeeService interface {
+	Create(context.Context, employee.CreateParams) (domain.Employee, error)
+	GetByID(context.Context, int64) (domain.Employee, error)
+	List(context.Context) ([]domain.Employee, error)
+	Update(context.Context, int64, employee.UpdateParams) (domain.Employee, error)
+	Delete(context.Context, int64) error
 }
 
-func NewRouter(database Pinger) http.Handler {
+type Dependencies struct {
+	Database  Pinger
+	Employees EmployeeService
+}
+
+func NewRouter(dependencies Dependencies) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /health", health(database))
+	mux.HandleFunc("GET /health", health(dependencies.Database))
+	mux.HandleFunc("POST /api/v1/employees", createEmployee(dependencies.Employees))
+	mux.HandleFunc("GET /api/v1/employees", listEmployees(dependencies.Employees))
+	mux.HandleFunc("GET /api/v1/employees/{id}", getEmployee(dependencies.Employees))
+	mux.HandleFunc("PUT /api/v1/employees/{id}", updateEmployee(dependencies.Employees))
+	mux.HandleFunc("DELETE /api/v1/employees/{id}", deleteEmployee(dependencies.Employees))
 
 	return mux
-}
-
-func health(database Pinger) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		response := healthResponse{
-			Status:   "ok",
-			Service:  "employee-requests",
-			Database: "available",
-		}
-		statusCode := http.StatusOK
-
-		if err := database.Ping(r.Context()); err != nil {
-			response.Status = "unavailable"
-			response.Database = "unavailable"
-			statusCode = http.StatusServiceUnavailable
-		}
-
-		writeJSON(w, statusCode, response)
-	}
-}
-
-func writeJSON(w http.ResponseWriter, statusCode int, value any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(value)
 }

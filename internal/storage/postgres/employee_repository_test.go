@@ -9,53 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-func TestValidateEmployee(t *testing.T) {
-	tests := []struct {
-		name         string
-		fullName     string
-		departmentID int64
-		positionID   int64
-		wantError    bool
-	}{
-		{
-			name:         "valid employee",
-			fullName:     "Иванов Иван Иванович",
-			departmentID: 1,
-			positionID:   1,
-		},
-		{
-			name:         "blank full name",
-			fullName:     "   ",
-			departmentID: 1,
-			positionID:   1,
-			wantError:    true,
-		},
-		{
-			name:         "invalid department",
-			fullName:     "Иванов Иван Иванович",
-			departmentID: 0,
-			positionID:   1,
-			wantError:    true,
-		},
-		{
-			name:         "invalid position",
-			fullName:     "Иванов Иван Иванович",
-			departmentID: 1,
-			positionID:   -1,
-			wantError:    true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateEmployee(tt.fullName, tt.departmentID, tt.positionID)
-			if (err != nil) != tt.wantError {
-				t.Fatalf("unexpected validation result: %v", err)
-			}
-		})
-	}
-}
-
 func TestMapDatabaseError(t *testing.T) {
 	if err := mapDatabaseError(pgx.ErrNoRows); !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)

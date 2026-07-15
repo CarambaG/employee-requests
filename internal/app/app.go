@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/CarambaG/employee-requests/internal/config"
+	"github.com/CarambaG/employee-requests/internal/employee"
 	"github.com/CarambaG/employee-requests/internal/httpapi"
 	"github.com/CarambaG/employee-requests/internal/storage/postgres"
 )
@@ -19,9 +20,15 @@ func Run(ctx context.Context, cfg config.Config) error {
 	}
 	defer pool.Close()
 
+	employeeRepository := postgres.NewEmployeeRepository(pool)
+	employeeService := employee.NewService(employeeRepository)
+
 	server := &http.Server{
-		Addr:              cfg.HTTPAddress,
-		Handler:           httpapi.NewRouter(pool),
+		Addr: cfg.HTTPAddress,
+		Handler: httpapi.NewRouter(httpapi.Dependencies{
+			Database:  pool,
+			Employees: employeeService,
+		}),
 		ReadHeaderTimeout: httpapi.DefaultReadHeaderTimeout,
 		ReadTimeout:       httpapi.DefaultReadTimeout,
 		WriteTimeout:      httpapi.DefaultWriteTimeout,
