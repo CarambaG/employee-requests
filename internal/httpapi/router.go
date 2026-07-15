@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -13,25 +14,45 @@ const (
 	DefaultIdleTimeout       = 60 * time.Second
 )
 
-type healthResponse struct {
-	Status  string `json:"status"`
-	Service string `json:"service"`
+type Pinger interface {
+	Ping(context.Context) error
 }
 
-func NewRouter() http.Handler {
+type healthResponse struct {
+	Status   string `json:"status"`
+	Service  string `json:"service"`
+	Database string `json:"database"`
+}
+
+func NewRouter(database Pinger) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /healthz", health)
+	mux.HandleFunc("GET /health", health(database))
 
 	return mux
 }
 
-func health(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
+func health(database Pinger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := healthResponse{
+			Status:   "ok",
+			Service:  "employee-requests",
+			Database: "available",
+		}
+		statusCode := http.StatusOK
 
-	_ = json.NewEncoder(w).Encode(healthResponse{
-		Status:  "ok",
-		Service: "employee-requests",
-	})
+		if err := database.Ping(r.Context()); err != nil {
+			response.Status = "unavailable"
+			response.Database = "unavailable"
+			statusCode = http.StatusServiceUnavailable
+		}
+
+		writeJSON(w, statusCode, response)
+	}
+}
+
+func writeJSON(w http.ResponseWriter, statusCode int, value any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(value)
 }

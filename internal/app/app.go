@@ -9,12 +9,19 @@ import (
 
 	"github.com/CarambaG/employee-requests/internal/config"
 	"github.com/CarambaG/employee-requests/internal/httpapi"
+	"github.com/CarambaG/employee-requests/internal/storage/postgres"
 )
 
 func Run(ctx context.Context, cfg config.Config) error {
+	pool, err := postgres.Open(ctx, cfg.Database)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+
 	server := &http.Server{
 		Addr:              cfg.HTTPAddress,
-		Handler:           httpapi.NewRouter(),
+		Handler:           httpapi.NewRouter(pool),
 		ReadHeaderTimeout: httpapi.DefaultReadHeaderTimeout,
 		ReadTimeout:       httpapi.DefaultReadTimeout,
 		WriteTimeout:      httpapi.DefaultWriteTimeout,

@@ -4,12 +4,15 @@
 
 ## Реализовано
 
-- HTTP-сервер и endpoint `GET /healthz`;
-- конфигурация через переменные окружения;
-- корректное завершение приложения;
+- HTTP-сервер и endpoint `GET /health`;
+- проверка доступности PostgreSQL через health-check;
+- конфигурация приложения и пула соединений через переменные окружения;
+- подключение к PostgreSQL через `pgxpool`;
+- корректное завершение HTTP-сервера и пула соединений;
 - объектная модель сотрудников и заявок;
 - бизнес-правила переходов статусов;
 - нормализованная схема PostgreSQL;
+- PostgreSQL-репозиторий сотрудников с операциями создания, чтения, изменения и удаления;
 - последовательное применение SQL-миграций;
 - Dockerfile и Docker Compose.
 
@@ -37,12 +40,24 @@
 
 Составной индекс для поиска просроченных заявок пока намеренно не добавлен. Сначала необходимо загрузить тестовые данные и зафиксировать исходный план и время запроса, а затем добавить индекс отдельным оптимизационным коммитом.
 
+## Репозиторий сотрудников
+
+`internal/storage/postgres/employee_repository.go` содержит операции:
+
+- `Create`;
+- `GetByID`;
+- `List`;
+- `Update`;
+- `Delete`.
+
+Репозиторий возвращает сотрудника вместе с данными подразделения и должности. Ошибка отсутствующей записи преобразуется в `domain.ErrNotFound`, а нарушения внешних ключей и уникальности — в `domain.ErrConflict`.
+
 ## Требования
 
-- Go 1.23 или новее;
+- Go 1.25 или новее;
 - Docker и Docker Compose.
 
-## Запуск
+## Запуск через Docker
 
 ```bash
 cp .env.example .env
@@ -58,13 +73,31 @@ Docker Compose последовательно:
 Проверка:
 
 ```bash
-curl http://localhost:8080/healthz
+curl http://localhost:8080/health
 ```
 
-Ответ:
+Ответ при доступной базе данных:
 
 ```json
-{"status":"ok","service":"employee-requests"}
+{"status":"ok","service":"employee-requests","database":"available"}
+```
+
+## Локальный запуск
+
+Сначала запустите базу данных и миграции:
+
+```bash
+docker compose up -d db
+docker compose run --rm migrate
+```
+
+Загрузите переменные окружения и запустите API:
+
+```bash
+set -a
+. ./.env
+set +a
+go run ./cmd/api
 ```
 
 ## Повторное применение миграций
@@ -84,10 +117,11 @@ make check
 ## Структура проекта
 
 ```text
-cmd/api/             точка входа HTTP API
-internal/app/        жизненный цикл приложения
-internal/config/     конфигурация
-internal/domain/     объектная модель и бизнес-правила
-internal/httpapi/    HTTP-маршрутизация
-migrations/          SQL-миграции и скрипт их применения
+cmd/api/                       точка входа HTTP API
+internal/app/                  жизненный цикл приложения
+internal/config/               конфигурация
+internal/domain/               объектная модель и бизнес-правила
+internal/httpapi/              HTTP-маршрутизация
+internal/storage/postgres/     пул соединений и PostgreSQL-репозитории
+migrations/                    SQL-миграции и скрипт их применения
 ```
