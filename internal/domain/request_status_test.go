@@ -1,6 +1,7 @@
 package domain_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/CarambaG/employee-requests/internal/domain"
@@ -58,5 +59,22 @@ func TestRequestChangeStatus(t *testing.T) {
 				t.Fatalf("unexpected status: got %q, want %q", request.Status, tt.next)
 			}
 		})
+	}
+}
+
+func TestRequestChangeStatusReturnsTypedErrors(t *testing.T) {
+	request := domain.Request{Status: domain.RequestStatusNew}
+
+	err := request.ChangeStatus(domain.RequestStatusCompleted)
+	if !errors.Is(err, domain.ErrConflict) {
+		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+	if !errors.Is(err, domain.ErrInvalidTransition) {
+		t.Fatalf("expected ErrInvalidTransition, got %v", err)
+	}
+
+	err = request.ChangeStatus(domain.RequestStatus("cancelled"))
+	if !errors.Is(err, domain.ErrInvalidArgument) {
+		t.Fatalf("expected ErrInvalidArgument, got %v", err)
 	}
 }

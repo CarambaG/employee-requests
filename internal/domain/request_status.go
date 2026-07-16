@@ -32,11 +32,17 @@ func (s RequestStatus) CanTransitionTo(next RequestStatus) bool {
 
 func (r *Request) ChangeStatus(next RequestStatus) error {
 	if !next.IsValid() {
-		return fmt.Errorf("unknown request status: %q", next)
+		return fmt.Errorf("%w: unknown request status %q", ErrInvalidArgument, next)
 	}
 
 	if !r.Status.CanTransitionTo(next) {
-		return fmt.Errorf("request status transition %q -> %q is not allowed", r.Status, next)
+		return fmt.Errorf(
+			"%w: %w: %q -> %q",
+			ErrConflict,
+			ErrInvalidTransition,
+			r.Status,
+			next,
+		)
 	}
 
 	r.Status = next

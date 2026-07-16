@@ -49,6 +49,13 @@ func writeJSON(w http.ResponseWriter, statusCode int, value any) {
 
 func writeServiceError(w http.ResponseWriter, err error, resource string) {
 	switch {
+	case errors.Is(err, domain.ErrInvalidTransition):
+		writeError(
+			w,
+			http.StatusConflict,
+			"invalid_status_transition",
+			"request status transition is not allowed",
+		)
 	case errors.Is(err, domain.ErrInvalidArgument):
 		message := strings.TrimPrefix(err.Error(), domain.ErrInvalidArgument.Error()+": ")
 		writeError(w, http.StatusBadRequest, "invalid_argument", message)

@@ -33,6 +33,8 @@ type RequestService interface {
 	Create(context.Context, requestservice.CreateParams) (domain.Request, error)
 	GetByNumber(context.Context, int64) (domain.Request, error)
 	List(context.Context, requestservice.ListFilter) ([]domain.Request, error)
+	UpdateStatus(context.Context, int64, domain.RequestStatus) (domain.Request, error)
+	UpdateAssignee(context.Context, int64, int64) (domain.Request, error)
 }
 
 type CatalogService interface {
@@ -82,6 +84,8 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	mux.HandleFunc("POST /api/v1/requests", createRequest(dependencies.Requests))
 	mux.HandleFunc("GET /api/v1/requests", listRequests(dependencies.Requests))
 	mux.HandleFunc("GET /api/v1/requests/{number}", getRequest(dependencies.Requests))
+	mux.HandleFunc("PATCH /api/v1/requests/{number}/status", updateRequestStatus(dependencies.Requests))
+	mux.HandleFunc("PATCH /api/v1/requests/{number}/assignee", updateRequestAssignee(dependencies.Requests))
 
 	return mux
 }
