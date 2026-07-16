@@ -11,6 +11,7 @@ import (
 	"github.com/CarambaG/employee-requests/internal/config"
 	"github.com/CarambaG/employee-requests/internal/employee"
 	"github.com/CarambaG/employee-requests/internal/httpapi"
+	"github.com/CarambaG/employee-requests/internal/report"
 	requestservice "github.com/CarambaG/employee-requests/internal/request"
 	"github.com/CarambaG/employee-requests/internal/storage/postgres"
 )
@@ -28,6 +29,8 @@ func Run(ctx context.Context, cfg config.Config) error {
 	employeeService := employee.NewService(employeeRepository)
 	requestRepository := postgres.NewRequestRepository(pool)
 	requestService := requestservice.NewService(requestRepository)
+	reportRepository := postgres.NewReportRepository(pool)
+	reportService := report.NewService(reportRepository)
 
 	server := &http.Server{
 		Addr: cfg.HTTPAddress,
@@ -36,6 +39,7 @@ func Run(ctx context.Context, cfg config.Config) error {
 			Catalogs:  catalogService,
 			Employees: employeeService,
 			Requests:  requestService,
+			Reports:   reportService,
 		}),
 		ReadHeaderTimeout: httpapi.DefaultReadHeaderTimeout,
 		ReadTimeout:       httpapi.DefaultReadTimeout,

@@ -7,6 +7,7 @@ import (
 
 	"github.com/CarambaG/employee-requests/internal/domain"
 	"github.com/CarambaG/employee-requests/internal/employee"
+	"github.com/CarambaG/employee-requests/internal/report"
 	requestservice "github.com/CarambaG/employee-requests/internal/request"
 )
 
@@ -37,6 +38,10 @@ type RequestService interface {
 	UpdateAssignee(context.Context, int64, int64) (domain.Request, error)
 }
 
+type ReportService interface {
+	GetSummary(context.Context) (report.Summary, error)
+}
+
 type CatalogService interface {
 	CreateDepartment(context.Context, string) (domain.Department, error)
 	GetDepartmentByID(context.Context, int64) (domain.Department, error)
@@ -56,6 +61,7 @@ type Dependencies struct {
 	Employees EmployeeService
 	Catalogs  CatalogService
 	Requests  RequestService
+	Reports   ReportService
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {
@@ -86,6 +92,8 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	mux.HandleFunc("GET /api/v1/requests/{number}", getRequest(dependencies.Requests))
 	mux.HandleFunc("PATCH /api/v1/requests/{number}/status", updateRequestStatus(dependencies.Requests))
 	mux.HandleFunc("PATCH /api/v1/requests/{number}/assignee", updateRequestAssignee(dependencies.Requests))
+
+	mux.HandleFunc("GET /api/v1/reports/summary", getReportSummary(dependencies.Reports))
 
 	return mux
 }

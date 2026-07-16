@@ -317,3 +317,50 @@ internal/httpapi/              HTTP-маршрутизация и обработ
 internal/storage/postgres/     пул соединений и PostgreSQL-репозитории
 migrations/                    SQL-миграции и скрипт их применения
 ```
+
+### Отчётность
+
+Сводный отчёт доступен по endpoint:
+
+```text
+GET /api/v1/reports/summary
+```
+
+Пример запроса:
+
+```bash
+curl http://localhost:8080/api/v1/reports/summary
+```
+
+Пример ответа:
+
+```json
+{
+  "requests_by_status": [
+    {
+      "status": {"code": "new", "name": "Новая"},
+      "count": 120
+    },
+    {
+      "status": {"code": "in_progress", "name": "В работе"},
+      "count": 35
+    },
+    {
+      "status": {"code": "completed", "name": "Выполнена"},
+      "count": 845
+    }
+  ],
+  "overdue_requests": 14,
+  "completed_by_assignee": [
+    {
+      "assignee": {
+        "id": 7,
+        "full_name": "Иванов Иван Иванович"
+      },
+      "completed_requests": 97
+    }
+  ]
+}
+```
+
+Отчёт формируется агрегатным SQL-запросом. Приложение не загружает все заявки в память. В распределении по статусам возвращаются все статусы, включая статусы с нулевым количеством заявок. В распределении по исполнителям возвращаются все сотрудники, включая сотрудников с нулевым количеством выполненных заявок.
