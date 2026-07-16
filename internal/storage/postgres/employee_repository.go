@@ -196,6 +196,8 @@ func mapDatabaseError(err error) error {
 		switch pgError.Code {
 		case "23503", "23505":
 			return fmt.Errorf("%w: %s", domain.ErrConflict, pgError.ConstraintName)
+		case "22001", "23514":
+			return fmt.Errorf("%w: %s", domain.ErrInvalidArgument, pgError.ConstraintName)
 		}
 	}
 

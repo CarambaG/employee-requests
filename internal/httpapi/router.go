@@ -7,6 +7,7 @@ import (
 
 	"github.com/CarambaG/employee-requests/internal/domain"
 	"github.com/CarambaG/employee-requests/internal/employee"
+	requestservice "github.com/CarambaG/employee-requests/internal/request"
 )
 
 const (
@@ -28,6 +29,12 @@ type EmployeeService interface {
 	Delete(context.Context, int64) error
 }
 
+type RequestService interface {
+	Create(context.Context, requestservice.CreateParams) (domain.Request, error)
+	GetByNumber(context.Context, int64) (domain.Request, error)
+	List(context.Context, requestservice.ListFilter) ([]domain.Request, error)
+}
+
 type CatalogService interface {
 	CreateDepartment(context.Context, string) (domain.Department, error)
 	GetDepartmentByID(context.Context, int64) (domain.Department, error)
@@ -46,6 +53,7 @@ type Dependencies struct {
 	Database  Pinger
 	Employees EmployeeService
 	Catalogs  CatalogService
+	Requests  RequestService
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {
@@ -70,6 +78,10 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	mux.HandleFunc("GET /api/v1/employees/{id}", getEmployee(dependencies.Employees))
 	mux.HandleFunc("PUT /api/v1/employees/{id}", updateEmployee(dependencies.Employees))
 	mux.HandleFunc("DELETE /api/v1/employees/{id}", deleteEmployee(dependencies.Employees))
+
+	mux.HandleFunc("POST /api/v1/requests", createRequest(dependencies.Requests))
+	mux.HandleFunc("GET /api/v1/requests", listRequests(dependencies.Requests))
+	mux.HandleFunc("GET /api/v1/requests/{number}", getRequest(dependencies.Requests))
 
 	return mux
 }
