@@ -1,0 +1,102 @@
+Employee Requests optimized performance benchmark
+Generated at (UTC): 2026-07-16T12:24:25Z
+PostgreSQL: 17.10
+Employees: 1000
+Requests: 1000000
+Assignee ID: 21
+Matching rows: 962
+Index: requests_assignee_status_due_at_idx (assignee_id, status_id, due_at)
+Index size: 39 MB
+
+The first EXPLAIN ANALYZE is a warm-up; use the following three execution times for comparison.
+
+Warm-up run (not used as the final measurement)
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1165.01..1165.80 rows=318 width=89) (actual time=9.275..9.393 rows=962 loops=1)
+   Sort Key: r.due_at
+   Sort Method: quicksort  Memory: 130kB
+   Buffers: shared hit=79 read=899
+   InitPlan 1
+     ->  Index Scan using request_statuses_code_unique on request_statuses  (cost=0.15..8.17 rows=1 width=2) (actual time=0.032..0.033 rows=1 loops=1)
+           Index Cond: ((code)::text = 'in_progress'::text)
+           Buffers: shared hit=2
+   ->  Bitmap Heap Scan on requests r  (cost=12.48..1143.62 rows=318 width=89) (actual time=0.738..8.797 rows=962 loops=1)
+         Recheck Cond: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+         Heap Blocks: exact=962
+         Buffers: shared hit=76 read=899
+         ->  Bitmap Index Scan on requests_assignee_status_due_at_idx  (cost=0.00..12.40 rows=318 width=0) (actual time=0.493..0.494 rows=962 loops=1)
+               Index Cond: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+               Buffers: shared hit=13
+ Planning:
+   Buffers: shared hit=191
+ Planning Time: 1.920 ms
+ Execution Time: 9.623 ms
+(19 rows)
+
+Measured run 1 of 3
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1165.01..1165.80 rows=318 width=89) (actual time=2.178..2.254 rows=962 loops=1)
+   Sort Key: r.due_at
+   Sort Method: quicksort  Memory: 130kB
+   Buffers: shared hit=972
+   InitPlan 1
+     ->  Index Scan using request_statuses_code_unique on request_statuses  (cost=0.15..8.17 rows=1 width=2) (actual time=0.027..0.030 rows=1 loops=1)
+           Index Cond: ((code)::text = 'in_progress'::text)
+           Buffers: shared hit=2
+   ->  Bitmap Heap Scan on requests r  (cost=12.48..1143.62 rows=318 width=89) (actual time=0.784..1.728 rows=962 loops=1)
+         Recheck Cond: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+         Heap Blocks: exact=962
+         Buffers: shared hit=972
+         ->  Bitmap Index Scan on requests_assignee_status_due_at_idx  (cost=0.00..12.40 rows=318 width=0) (actual time=0.450..0.450 rows=962 loops=1)
+               Index Cond: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+               Buffers: shared hit=10
+ Planning Time: 0.203 ms
+ Execution Time: 2.451 ms
+(17 rows)
+
+Measured run 2 of 3
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1165.01..1165.80 rows=318 width=89) (actual time=1.946..2.018 rows=962 loops=1)
+   Sort Key: r.due_at
+   Sort Method: quicksort  Memory: 130kB
+   Buffers: shared hit=972
+   InitPlan 1
+     ->  Index Scan using request_statuses_code_unique on request_statuses  (cost=0.15..8.17 rows=1 width=2) (actual time=0.025..0.027 rows=1 loops=1)
+           Index Cond: ((code)::text = 'in_progress'::text)
+           Buffers: shared hit=2
+   ->  Bitmap Heap Scan on requests r  (cost=12.48..1143.62 rows=318 width=89) (actual time=0.807..1.629 rows=962 loops=1)
+         Recheck Cond: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+         Heap Blocks: exact=962
+         Buffers: shared hit=972
+         ->  Bitmap Index Scan on requests_assignee_status_due_at_idx  (cost=0.00..12.40 rows=318 width=0) (actual time=0.416..0.416 rows=962 loops=1)
+               Index Cond: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+               Buffers: shared hit=10
+ Planning Time: 0.175 ms
+ Execution Time: 2.190 ms
+(17 rows)
+
+Measured run 3 of 3
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1165.01..1165.80 rows=318 width=89) (actual time=2.112..2.205 rows=962 loops=1)
+   Sort Key: r.due_at
+   Sort Method: quicksort  Memory: 130kB
+   Buffers: shared hit=972
+   InitPlan 1
+     ->  Index Scan using request_statuses_code_unique on request_statuses  (cost=0.15..8.17 rows=1 width=2) (actual time=0.022..0.024 rows=1 loops=1)
+           Index Cond: ((code)::text = 'in_progress'::text)
+           Buffers: shared hit=2
+   ->  Bitmap Heap Scan on requests r  (cost=12.48..1143.62 rows=318 width=89) (actual time=0.437..1.747 rows=962 loops=1)
+         Recheck Cond: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+         Heap Blocks: exact=962
+         Buffers: shared hit=972
+         ->  Bitmap Index Scan on requests_assignee_status_due_at_idx  (cost=0.00..12.40 rows=318 width=0) (actual time=0.308..0.308 rows=962 loops=1)
+               Index Cond: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+               Buffers: shared hit=10
+ Planning Time: 0.143 ms
+ Execution Time: 2.422 ms
+(17 rows)
+

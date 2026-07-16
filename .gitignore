@@ -6,3 +6,4 @@ dist/
 coverage.out
 *.log
 .DS_Store
+performance-results/*_rows.csv
