@@ -1,0 +1,113 @@
+Employee Requests performance baseline
+Generated at (UTC): 2026-07-16T12:10:54Z
+PostgreSQL: 17.10
+Employees: 1000
+Requests: 1000000
+Assignee ID: 21
+Matching rows: 962
+
+No composite performance index is present in this baseline commit.
+The first EXPLAIN ANALYZE is a warm-up; use the following three execution times for comparison.
+
+Warm-up run (not used as the final measurement)
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Merge  (cost=24731.17..24761.97 rows=264 width=89) (actual time=41.325..43.721 rows=962 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=402 read=15001
+   InitPlan 1
+     ->  Index Scan using request_statuses_code_unique on request_statuses  (cost=0.15..8.17 rows=1 width=2) (actual time=0.030..0.031 rows=1 loops=1)
+           Index Cond: ((code)::text = 'in_progress'::text)
+           Buffers: shared hit=2
+   ->  Sort  (cost=23722.98..23723.31 rows=132 width=89) (actual time=34.261..34.291 rows=321 loops=3)
+         Sort Key: r.due_at
+         Sort Method: quicksort  Memory: 65kB
+         Buffers: shared hit=400 read=15001
+         Worker 0:  Sort Method: quicksort  Memory: 57kB
+         Worker 1:  Sort Method: quicksort  Memory: 57kB
+         ->  Parallel Seq Scan on requests r  (cost=0.00..23718.33 rows=132 width=89) (actual time=0.128..33.901 rows=321 loops=3)
+               Filter: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+               Rows Removed by Filter: 333013
+               Buffers: shared hit=384 read=15001
+ Planning:
+   Buffers: shared hit=161 read=3
+ Planning Time: 2.051 ms
+ Execution Time: 43.980 ms
+(22 rows)
+
+Measured run 1 of 3
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Merge  (cost=24731.17..24761.97 rows=264 width=89) (actual time=25.737..27.868 rows=962 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=498 read=14905
+   InitPlan 1
+     ->  Index Scan using request_statuses_code_unique on request_statuses  (cost=0.15..8.17 rows=1 width=2) (actual time=0.031..0.032 rows=1 loops=1)
+           Index Cond: ((code)::text = 'in_progress'::text)
+           Buffers: shared hit=2
+   ->  Sort  (cost=23722.98..23723.31 rows=132 width=89) (actual time=21.692..21.713 rows=321 loops=3)
+         Sort Key: r.due_at
+         Sort Method: quicksort  Memory: 65kB
+         Buffers: shared hit=496 read=14905
+         Worker 0:  Sort Method: quicksort  Memory: 56kB
+         Worker 1:  Sort Method: quicksort  Memory: 58kB
+         ->  Parallel Seq Scan on requests r  (cost=0.00..23718.33 rows=132 width=89) (actual time=0.154..21.481 rows=321 loops=3)
+               Filter: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+               Rows Removed by Filter: 333013
+               Buffers: shared hit=480 read=14905
+ Planning Time: 0.134 ms
+ Execution Time: 27.965 ms
+(20 rows)
+
+Measured run 2 of 3
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Merge  (cost=24731.17..24761.97 rows=264 width=89) (actual time=25.872..28.338 rows=962 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=594 read=14809
+   InitPlan 1
+     ->  Index Scan using request_statuses_code_unique on request_statuses  (cost=0.15..8.17 rows=1 width=2) (actual time=0.028..0.029 rows=1 loops=1)
+           Index Cond: ((code)::text = 'in_progress'::text)
+           Buffers: shared hit=2
+   ->  Sort  (cost=23722.98..23723.31 rows=132 width=89) (actual time=22.501..22.526 rows=321 loops=3)
+         Sort Key: r.due_at
+         Sort Method: quicksort  Memory: 65kB
+         Buffers: shared hit=592 read=14809
+         Worker 0:  Sort Method: quicksort  Memory: 58kB
+         Worker 1:  Sort Method: quicksort  Memory: 56kB
+         ->  Parallel Seq Scan on requests r  (cost=0.00..23718.33 rows=132 width=89) (actual time=0.134..22.289 rows=321 loops=3)
+               Filter: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+               Rows Removed by Filter: 333013
+               Buffers: shared hit=576 read=14809
+ Planning Time: 0.114 ms
+ Execution Time: 28.442 ms
+(20 rows)
+
+Measured run 3 of 3
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Merge  (cost=24731.17..24761.97 rows=264 width=89) (actual time=24.534..26.792 rows=962 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=690 read=14713
+   InitPlan 1
+     ->  Index Scan using request_statuses_code_unique on request_statuses  (cost=0.15..8.17 rows=1 width=2) (actual time=0.027..0.029 rows=1 loops=1)
+           Index Cond: ((code)::text = 'in_progress'::text)
+           Buffers: shared hit=2
+   ->  Sort  (cost=23722.98..23723.31 rows=132 width=89) (actual time=21.196..21.216 rows=321 loops=3)
+         Sort Key: r.due_at
+         Sort Method: quicksort  Memory: 65kB
+         Buffers: shared hit=688 read=14713
+         Worker 0:  Sort Method: quicksort  Memory: 57kB
+         Worker 1:  Sort Method: quicksort  Memory: 57kB
+         ->  Parallel Seq Scan on requests r  (cost=0.00..23718.33 rows=132 width=89) (actual time=0.112..21.017 rows=321 loops=3)
+               Filter: ((assignee_id = 21) AND (status_id = (InitPlan 1).col1) AND (due_at < now()))
+               Rows Removed by Filter: 333013
+               Buffers: shared hit=672 read=14713
+ Planning Time: 0.112 ms
+ Execution Time: 26.885 ms
+(20 rows)
+

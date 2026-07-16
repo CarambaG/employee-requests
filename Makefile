@@ -1,4 +1,4 @@
-.PHONY: run build migrate-up seed seed-small seed-verify test fmt vet check up down logs
+.PHONY: run build migrate-up seed seed-small seed-verify benchmark-baseline benchmark-clean test fmt vet check up down logs
 
 run:
 	go run ./cmd/api
@@ -18,6 +18,12 @@ seed-small:
 
 seed-verify:
 	docker compose exec -T db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -c "SELECT (SELECT COUNT(*) FROM employees) AS employees, (SELECT COUNT(*) FROM requests) AS requests;"'
+
+benchmark-baseline:
+	docker compose run --rm benchmark
+
+benchmark-clean:
+	rm -f performance-results/baseline.txt performance-results/baseline_rows.csv
 
 test:
 	go test ./...

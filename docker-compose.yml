@@ -42,6 +42,21 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  benchmark:
+    image: postgres:17-alpine
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-employee_requests}:${POSTGRES_PASSWORD:-employee_requests}@db:5432/${POSTGRES_DB:-employee_requests}?sslmode=disable
+      ASSIGNEE_ID: ${ASSIGNEE_ID:-}
+      OUTPUT_DIR: /results
+    volumes:
+      - ./scripts/performance:/performance:ro
+      - ./performance-results:/results
+    entrypoint: ["/bin/sh", "/performance/run_baseline.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     build:
       context: .
