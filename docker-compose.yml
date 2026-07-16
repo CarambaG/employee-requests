@@ -28,6 +28,20 @@ services:
       db:
         condition: service_healthy
 
+  seed:
+    image: postgres:17-alpine
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-employee_requests}:${POSTGRES_PASSWORD:-employee_requests}@db:5432/${POSTGRES_DB:-employee_requests}?sslmode=disable
+      EMPLOYEE_COUNT: ${EMPLOYEE_COUNT:-1000}
+      REQUEST_COUNT: ${REQUEST_COUNT:-1000000}
+    volumes:
+      - ./scripts/seed:/seed:ro
+    entrypoint: ["/bin/sh", "/seed/seed.sh"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   api:
     build:
       context: .
