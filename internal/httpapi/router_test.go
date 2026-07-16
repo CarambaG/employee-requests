@@ -19,6 +19,65 @@ func (f pingerFunc) Ping(ctx context.Context) error {
 	return f(ctx)
 }
 
+type catalogServiceStub struct {
+	createDepartmentFunc func(context.Context, string) (domain.Department, error)
+	getDepartmentFunc    func(context.Context, int64) (domain.Department, error)
+	listDepartmentsFunc  func(context.Context) ([]domain.Department, error)
+	updateDepartmentFunc func(context.Context, int64, string) (domain.Department, error)
+	deleteDepartmentFunc func(context.Context, int64) error
+	createPositionFunc   func(context.Context, string) (domain.Position, error)
+	getPositionFunc      func(context.Context, int64) (domain.Position, error)
+	listPositionsFunc    func(context.Context) ([]domain.Position, error)
+	updatePositionFunc   func(context.Context, int64, string) (domain.Position, error)
+	deletePositionFunc   func(context.Context, int64) error
+}
+
+func (s catalogServiceStub) CreateDepartment(ctx context.Context, name string) (domain.Department, error) {
+	return s.createDepartmentFunc(ctx, name)
+}
+func (s catalogServiceStub) GetDepartmentByID(ctx context.Context, id int64) (domain.Department, error) {
+	return s.getDepartmentFunc(ctx, id)
+}
+func (s catalogServiceStub) ListDepartments(ctx context.Context) ([]domain.Department, error) {
+	return s.listDepartmentsFunc(ctx)
+}
+func (s catalogServiceStub) UpdateDepartment(ctx context.Context, id int64, name string) (domain.Department, error) {
+	return s.updateDepartmentFunc(ctx, id, name)
+}
+func (s catalogServiceStub) DeleteDepartment(ctx context.Context, id int64) error {
+	return s.deleteDepartmentFunc(ctx, id)
+}
+func (s catalogServiceStub) CreatePosition(ctx context.Context, name string) (domain.Position, error) {
+	return s.createPositionFunc(ctx, name)
+}
+func (s catalogServiceStub) GetPositionByID(ctx context.Context, id int64) (domain.Position, error) {
+	return s.getPositionFunc(ctx, id)
+}
+func (s catalogServiceStub) ListPositions(ctx context.Context) ([]domain.Position, error) {
+	return s.listPositionsFunc(ctx)
+}
+func (s catalogServiceStub) UpdatePosition(ctx context.Context, id int64, name string) (domain.Position, error) {
+	return s.updatePositionFunc(ctx, id, name)
+}
+func (s catalogServiceStub) DeletePosition(ctx context.Context, id int64) error {
+	return s.deletePositionFunc(ctx, id)
+}
+
+func emptyCatalogService() catalogServiceStub {
+	return catalogServiceStub{
+		createDepartmentFunc: func(context.Context, string) (domain.Department, error) { return domain.Department{}, nil },
+		getDepartmentFunc:    func(context.Context, int64) (domain.Department, error) { return domain.Department{}, nil },
+		listDepartmentsFunc:  func(context.Context) ([]domain.Department, error) { return nil, nil },
+		updateDepartmentFunc: func(context.Context, int64, string) (domain.Department, error) { return domain.Department{}, nil },
+		deleteDepartmentFunc: func(context.Context, int64) error { return nil },
+		createPositionFunc:   func(context.Context, string) (domain.Position, error) { return domain.Position{}, nil },
+		getPositionFunc:      func(context.Context, int64) (domain.Position, error) { return domain.Position{}, nil },
+		listPositionsFunc:    func(context.Context) ([]domain.Position, error) { return nil, nil },
+		updatePositionFunc:   func(context.Context, int64, string) (domain.Position, error) { return domain.Position{}, nil },
+		deletePositionFunc:   func(context.Context, int64) error { return nil },
+	}
+}
+
 type employeeServiceStub struct {
 	createFunc func(context.Context, employee.CreateParams) (domain.Employee, error)
 	getFunc    func(context.Context, int64) (domain.Employee, error)
@@ -225,9 +284,18 @@ func TestEmployeeEndpointRejectsInvalidID(t *testing.T) {
 }
 
 func newTestRouter(service employeeServiceStub, database httpapi.Pinger) http.Handler {
+	return newTestRouterWithCatalog(service, emptyCatalogService(), database)
+}
+
+func newTestRouterWithCatalog(
+	employees employeeServiceStub,
+	catalogs catalogServiceStub,
+	database httpapi.Pinger,
+) http.Handler {
 	return httpapi.NewRouter(httpapi.Dependencies{
 		Database:  database,
-		Employees: service,
+		Employees: employees,
+		Catalogs:  catalogs,
 	})
 }
 
@@ -247,5 +315,91 @@ func sampleEmployee(id int64) domain.Employee {
 			ID:   2,
 			Name: "Инженер-программист",
 		},
+	}
+}
+
+func TestCreateDepartment(t *testing.T) {
+	catalogs := emptyCatalogService()
+	catalogs.createDepartmentFunc = func(_ context.Context, name string) (domain.Department, error) {
+		if name != "Разработка" {
+			t.Fatalf("unexpected department name: %q", name)
+		}
+		return domain.Department{ID: 3, Name: name}, nil
+	}
+
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/departments",
+		strings.NewReader(`{"name":"Разработка"}`),
+	)
+	recorder := httptest.NewRecorder()
+
+	newTestRouterWithCatalog(employeeServiceStub{}, catalogs, successfulPinger()).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("unexpected status code: got %d, want %d", recorder.Code, http.StatusCreated)
+	}
+	if recorder.Header().Get("Location") != "/api/v1/departments/3" {
+		t.Fatalf("unexpected Location header: %q", recorder.Header().Get("Location"))
+	}
+	if !strings.Contains(recorder.Body.String(), `"name":"Разработка"`) {
+		t.Fatalf("unexpected response body: %s", recorder.Body.String())
+	}
+}
+
+func TestListPositions(t *testing.T) {
+	catalogs := emptyCatalogService()
+	catalogs.listPositionsFunc = func(context.Context) ([]domain.Position, error) {
+		return []domain.Position{
+			{ID: 1, Name: "Инженер"},
+			{ID: 2, Name: "Руководитель"},
+		}, nil
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/positions", nil)
+	recorder := httptest.NewRecorder()
+
+	newTestRouterWithCatalog(employeeServiceStub{}, catalogs, successfulPinger()).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("unexpected status code: got %d, want %d", recorder.Code, http.StatusOK)
+	}
+	if strings.Count(recorder.Body.String(), `"name"`) != 2 {
+		t.Fatalf("unexpected response body: %s", recorder.Body.String())
+	}
+}
+
+func TestDeleteDepartmentReturnsConflict(t *testing.T) {
+	catalogs := emptyCatalogService()
+	catalogs.deleteDepartmentFunc = func(context.Context, int64) error {
+		return domain.ErrConflict
+	}
+
+	request := httptest.NewRequest(http.MethodDelete, "/api/v1/departments/1", nil)
+	recorder := httptest.NewRecorder()
+
+	newTestRouterWithCatalog(employeeServiceStub{}, catalogs, successfulPinger()).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("unexpected status code: got %d, want %d", recorder.Code, http.StatusConflict)
+	}
+}
+
+func TestGetPositionReturnsResourceSpecificNotFound(t *testing.T) {
+	catalogs := emptyCatalogService()
+	catalogs.getPositionFunc = func(context.Context, int64) (domain.Position, error) {
+		return domain.Position{}, domain.ErrNotFound
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/positions/42", nil)
+	recorder := httptest.NewRecorder()
+
+	newTestRouterWithCatalog(employeeServiceStub{}, catalogs, successfulPinger()).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("unexpected status code: got %d, want %d", recorder.Code, http.StatusNotFound)
+	}
+	if !strings.Contains(recorder.Body.String(), `"message":"position not found"`) {
+		t.Fatalf("unexpected response body: %s", recorder.Body.String())
 	}
 }

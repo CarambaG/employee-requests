@@ -41,7 +41,7 @@ func createEmployee(service EmployeeService) http.HandlerFunc {
 			PositionID:   request.PositionID,
 		})
 		if err != nil {
-			writeServiceError(w, err)
+			writeServiceError(w, err, "employee")
 			return
 		}
 
@@ -59,7 +59,7 @@ func getEmployee(service EmployeeService) http.HandlerFunc {
 
 		found, err := service.GetByID(r.Context(), id)
 		if err != nil {
-			writeServiceError(w, err)
+			writeServiceError(w, err, "employee")
 			return
 		}
 
@@ -71,7 +71,7 @@ func listEmployees(service EmployeeService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		employees, err := service.List(r.Context())
 		if err != nil {
-			writeServiceError(w, err)
+			writeServiceError(w, err, "employee")
 			return
 		}
 
@@ -103,7 +103,7 @@ func updateEmployee(service EmployeeService) http.HandlerFunc {
 			PositionID:   request.PositionID,
 		})
 		if err != nil {
-			writeServiceError(w, err)
+			writeServiceError(w, err, "employee")
 			return
 		}
 
@@ -119,7 +119,7 @@ func deleteEmployee(service EmployeeService) http.HandlerFunc {
 		}
 
 		if err := service.Delete(r.Context(), id); err != nil {
-			writeServiceError(w, err)
+			writeServiceError(w, err, "employee")
 			return
 		}
 

@@ -47,19 +47,19 @@ func writeJSON(w http.ResponseWriter, statusCode int, value any) {
 	_ = json.NewEncoder(w).Encode(value)
 }
 
-func writeServiceError(w http.ResponseWriter, err error) {
+func writeServiceError(w http.ResponseWriter, err error, resource string) {
 	switch {
 	case errors.Is(err, domain.ErrInvalidArgument):
 		message := strings.TrimPrefix(err.Error(), domain.ErrInvalidArgument.Error()+": ")
 		writeError(w, http.StatusBadRequest, "invalid_argument", message)
 	case errors.Is(err, domain.ErrNotFound):
-		writeError(w, http.StatusNotFound, "not_found", "employee not found")
+		writeError(w, http.StatusNotFound, "not_found", resource+" not found")
 	case errors.Is(err, domain.ErrConflict):
 		writeError(
 			w,
 			http.StatusConflict,
 			"conflict",
-			"operation conflicts with related data",
+			"operation conflicts with existing or related data",
 		)
 	default:
 		log.Printf("HTTP handler error: %v", err)

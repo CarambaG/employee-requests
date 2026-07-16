@@ -28,15 +28,43 @@ type EmployeeService interface {
 	Delete(context.Context, int64) error
 }
 
+type CatalogService interface {
+	CreateDepartment(context.Context, string) (domain.Department, error)
+	GetDepartmentByID(context.Context, int64) (domain.Department, error)
+	ListDepartments(context.Context) ([]domain.Department, error)
+	UpdateDepartment(context.Context, int64, string) (domain.Department, error)
+	DeleteDepartment(context.Context, int64) error
+
+	CreatePosition(context.Context, string) (domain.Position, error)
+	GetPositionByID(context.Context, int64) (domain.Position, error)
+	ListPositions(context.Context) ([]domain.Position, error)
+	UpdatePosition(context.Context, int64, string) (domain.Position, error)
+	DeletePosition(context.Context, int64) error
+}
+
 type Dependencies struct {
 	Database  Pinger
 	Employees EmployeeService
+	Catalogs  CatalogService
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", health(dependencies.Database))
+
+	mux.HandleFunc("POST /api/v1/departments", createDepartment(dependencies.Catalogs))
+	mux.HandleFunc("GET /api/v1/departments", listDepartments(dependencies.Catalogs))
+	mux.HandleFunc("GET /api/v1/departments/{id}", getDepartment(dependencies.Catalogs))
+	mux.HandleFunc("PUT /api/v1/departments/{id}", updateDepartment(dependencies.Catalogs))
+	mux.HandleFunc("DELETE /api/v1/departments/{id}", deleteDepartment(dependencies.Catalogs))
+
+	mux.HandleFunc("POST /api/v1/positions", createPosition(dependencies.Catalogs))
+	mux.HandleFunc("GET /api/v1/positions", listPositions(dependencies.Catalogs))
+	mux.HandleFunc("GET /api/v1/positions/{id}", getPosition(dependencies.Catalogs))
+	mux.HandleFunc("PUT /api/v1/positions/{id}", updatePosition(dependencies.Catalogs))
+	mux.HandleFunc("DELETE /api/v1/positions/{id}", deletePosition(dependencies.Catalogs))
+
 	mux.HandleFunc("POST /api/v1/employees", createEmployee(dependencies.Employees))
 	mux.HandleFunc("GET /api/v1/employees", listEmployees(dependencies.Employees))
 	mux.HandleFunc("GET /api/v1/employees/{id}", getEmployee(dependencies.Employees))
