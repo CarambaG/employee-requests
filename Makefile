@@ -1,4 +1,4 @@
-.PHONY: run build migrate-up seed seed-small seed-verify benchmark-baseline benchmark-optimized benchmark-clean test fmt vet check up down logs
+.PHONY: run build migrate-up seed seed-small seed-verify benchmark-baseline benchmark-optimized benchmark-full benchmark-clean test fmt vet check up down logs
 
 run:
 	go run ./cmd/api
@@ -24,6 +24,9 @@ benchmark-baseline:
 
 benchmark-optimized: migrate-up
 	docker compose run --rm --no-deps benchmark-optimized
+
+benchmark-full: migrate-up
+	docker compose run --rm --no-deps benchmark-full
 
 benchmark-clean:
 	rm -f \

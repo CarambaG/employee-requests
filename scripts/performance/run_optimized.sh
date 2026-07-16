@@ -130,18 +130,26 @@ if [ -f "$baseline_path" ]; then
     if [ -n "$baseline_average" ] && [ -n "$optimized_average" ]; then
         speedup=$(awk -v before="$baseline_average" -v after="$optimized_average" 'BEGIN { if (after > 0) printf "%.2f", before / after }')
         reduction=$(awk -v before="$baseline_average" -v after="$optimized_average" 'BEGIN { if (before > 0) printf "%.2f", (before - after) * 100 / before }')
-        baseline_plan=$(grep -m 1 -E 'Seq Scan|Index Scan|Index Only Scan|Bitmap Heap Scan' "$baseline_path" | sed 's/^[[:space:]]*//' || true)
-        optimized_plan=$(grep -m 1 -E 'Seq Scan|Index Scan|Index Only Scan|Bitmap Heap Scan' "$report_path" | sed 's/^[[:space:]]*//' || true)
+        postgres_version=$(awk -F ': ' '/^PostgreSQL:/ { print $2; exit }' "$report_path")
+        baseline_plan=$(grep -m 1 -E 'Parallel Seq Scan on requests|Seq Scan on requests|Bitmap Heap Scan on requests|Index Scan.*requests' "$baseline_path" | sed 's/^[[:space:]]*//' || true)
+        optimized_heap_plan=$(grep -m 1 -E 'Bitmap Heap Scan on requests|Index Scan.*requests_assignee_status_due_at_idx' "$report_path" | sed 's/^[[:space:]]*//' || true)
+        optimized_index_plan=$(grep -m 1 -E 'Bitmap Index Scan on requests_assignee_status_due_at_idx|Index Only Scan.*requests_assignee_status_due_at_idx' "$report_path" | sed 's/^[[:space:]]*//' || true)
+        baseline_sort=$(grep -m 1 -E '^[[:space:]]*(->  )?Sort ' "$baseline_path" | sed 's/^[[:space:]]*//' || true)
+        optimized_sort=$(grep -m 1 -E '^[[:space:]]*(->  )?Sort ' "$report_path" | sed 's/^[[:space:]]*//' || true)
 
         {
             echo "# Сравнение производительности"
             echo
+            echo "- PostgreSQL: \`${postgres_version:-unknown}\`"
+            echo "- Сотрудников: \`$employee_count\`"
+            echo "- Заявок: \`$request_count\`"
             echo "- Исполнитель: \`$assignee_id\`"
-            echo "- Строк в оптимизированном запуске: \`$matched_rows\`"
+            echo "- Подходящих заявок: \`$matched_rows\`"
             echo "- Среднее время до оптимизации: \`$baseline_average ms\`"
             echo "- Среднее время после оптимизации: \`$optimized_average ms\`"
             echo "- Ускорение: \`${speedup}x\`"
             echo "- Снижение времени выполнения: \`${reduction}%\`"
+            echo "- Размер индекса: \`$index_size\`"
             echo
             echo "## Планы выполнения"
             echo
@@ -149,15 +157,24 @@ if [ -f "$baseline_path" ]; then
             echo
             echo '```text'
             echo "${baseline_plan:-plan not detected}"
+            if [ -n "$baseline_sort" ]; then
+                echo "$baseline_sort"
+            fi
             echo '```'
             echo
             echo "После оптимизации:"
             echo
             echo '```text'
-            echo "${optimized_plan:-plan not detected}"
+            echo "${optimized_heap_plan:-plan not detected}"
+            if [ -n "$optimized_index_plan" ]; then
+                echo "$optimized_index_plan"
+            fi
+            if [ -n "$optimized_sort" ]; then
+                echo "$optimized_sort"
+            fi
             echo '```'
             echo
-            echo "Составной индекс начинается с полей равенства \`assignee_id\` и \`status_id\`, а затем содержит диапазонное и сортировочное поле \`due_at\`. PostgreSQL может найти только подходящий диапазон индекса и вернуть строки уже в порядке срока выполнения, избегая полного просмотра таблицы и отдельной сортировки."
+            echo "Составной индекс начинается с полей равенства \`assignee_id\` и \`status_id\`, а затем содержит диапазонное поле \`due_at\`. Он устраняет полный просмотр таблицы. Наличие отдельной сортировки зависит от выбранного PostgreSQL способа доступа; bitmap heap scan не сохраняет порядок B-tree."
         } > "$comparison_path"
     fi
 fi
